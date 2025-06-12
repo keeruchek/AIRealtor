@@ -108,7 +108,7 @@ def parking_score(lat, lon):
 def get_all_metrics(place, lat, lon):
     housing = avg_housing_cost(place)
     crime = crime_rate(place)
-    def get_school_data(lat, lon, radius=2):
+def get_school_data(lat, lon, radius=2):
     url = "https://api.schooldigger.com/v1.2/schools"
     params = {
         "st": "",  # optional: state abbreviation
