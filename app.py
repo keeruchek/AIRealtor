@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import requests
 import pandas as pd
+import random
 from web_agent import ask_web_ai  # new import for AI
 
 # 🗺️ Geocoding using OpenCage Geocoder
@@ -97,7 +98,7 @@ def walkability_score(lat, lon, radius=1000):
 def diversity_index(place):
     return round(random.uniform(0.3, 0.9), 2)
 
-def pet_score(green_count, walk_score):
+def pet_score(walk_score, green_count):
     return round((green_count * 10 + walk_score) / 2)
 
 def parking_score(lat, lon):
@@ -105,9 +106,6 @@ def parking_score(lat, lon):
     parks = get_nearby_places(lat, lon, 'amenity=parking', 'parking')
     return len(parks)
 
-def get_all_metrics(place, lat, lon):
-    housing = avg_housing_cost(place)
-    crime = crime_rate(place)
 def get_school_data(lat, lon, radius=2):
     url = "https://api.schooldigger.com/v1.2/schools"
     params = {
@@ -128,7 +126,11 @@ def get_school_data(lat, lon, radius=2):
         return schools
     except Exception as e:
         return ["N/A"]
-    commute_sc, commute_type = commute_score(place)
+
+def get_all_metrics(place, lat, lon):
+    housing = avg_housing_cost(place)
+    crime = crime_rate(place)
+    commute_sc, commute_type = commute_score(lat, lon)
     parks = get_nearby_places(lat, lon, 'leisure=park', 'parks')
     walk_sc = walkability_score(lat, lon)
     gyms = get_nearby_places(lat, lon, 'leisure=fitness_centre', 'gyms')
@@ -137,7 +139,7 @@ def get_school_data(lat, lon, radius=2):
     parking_ct = parking_score(lat, lon)
     div_ix = diversity_index(place)
     pet_sc = pet_score(walk_sc, len(parks))
-
+    schools_with_ratings = get_school_data(lat, lon)
     return {
         "Average Rent (2 bed)": housing['avg_rent_2bed'],
         "Average Sale Price (2 bed)": housing['avg_price_2bed'],
@@ -190,22 +192,28 @@ if st.button("Show Insights"):
         for col, place, data in [(col1, place1, data1), (col2, place2, data2)]:
             with col:
                 st.subheader(place)
-                for k,v in data.items():
-                    if isinstance(v, list):
-                        st.markdown(f"**{k}:**")
-                        for item in v:
-                            st.markdown(f"- {item}")
-                    else:
-                        st.markdown(f"**{k}:** {v}")
+                if isinstance(data, dict):
+                    for k,v in data.items():
+                        if isinstance(v, list):
+                            st.markdown(f"**{k}:**")
+                            for item in v:
+                                st.markdown(f"- {item}")
+                        else:
+                            st.markdown(f"**{k}:** {v}")
+                else:
+                    st.error("Data is not available for this location.")
     else:
         st.subheader(place1)
-        for k,v in data1.items():
-            if isinstance(v, list):
-                st.markdown(f"**{k}:**")
-                for item in v:
-                    st.markdown(f"- {item}")
-            else:
-                st.markdown(f"**{k}:** {v}")
+        if isinstance(data1, dict):
+            for k,v in data1.items():
+                if isinstance(v, list):
+                    st.markdown(f"**{k}:**")
+                    for item in v:
+                        st.markdown(f"- {item}")
+                else:
+                    st.markdown(f"**{k}:** {v}")
+        else:
+            st.error("Data is not available for this location.")
 
     # --- AI Chatbot Section ---
 with st.container():
