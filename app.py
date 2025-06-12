@@ -63,17 +63,22 @@ if st.session_state.show_insights:
                 st.markdown(f"**{k}:** {v}")
 
     # --- AI Search Below Results ---
+    # --- AI Chatbot Section ---
+with st.container():
     st.markdown("---")
-    st.header("🤖 Ask me anything about these neighborhoods")
+    st.subheader("🧠 AI Chatbot with Web Search")
 
-    user_input = st.text_input("Your Question", key="ai_question_input")
-    if st.button("Get Answer", key="ai_answer_button"):
-        if user_input.strip():
-            with st.spinner("Thinking..."):
-                try:
-                    result = ask_web_ai(user_input)
-                    st.markdown(f"**Answer:** {result}")
-                except Exception as e:
-                    st.error(f"Error: {e}")
-        else:
-            st.warning("Please enter a question.")
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+
+    user_input = st.text_input("Ask me anything:", key="user_input")
+
+    if user_input:
+        with st.spinner("Thinking..."):
+            from web_agent import ask_web_ai
+            response = ask_web_ai(user_input)
+        st.session_state.chat_history.append(("You", user_input))
+        st.session_state.chat_history.append(("AI", response))
+
+    for speaker, msg in st.session_state.chat_history:
+        st.markdown(f"**{speaker}:** {msg}")
