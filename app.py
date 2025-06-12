@@ -215,6 +215,8 @@ if st.button("Show Insights"):
         else:
             st.error("Data is not available for this location.")
 
+  
+
     # --- AI Chatbot Section ---
 with st.container():
     st.markdown("---")
