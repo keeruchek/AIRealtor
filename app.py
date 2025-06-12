@@ -43,11 +43,18 @@ def get_nearby_places(lat, lon, query, label, radius=2000):
         return [f"Error fetching {label}: {e}"]
 
 def avg_housing_cost(place):
-    url = "https://your_zillow_api_url"
-    headers = {"X-RapidAPI-Key": "d928b8efacmsh3ece55120b24756p168133jsnf6588ac12b1d"}
-    params = {"location": place, "propertyType": "2-bedroom"}
+    url = "https://zillow-com1.p.rapidapi.com/propertyExtendedSearch"
+    headers = {
+        "X-RapidAPI-Key": "<d928b8efacmsh3ece55120b24756p168133jsnf6588ac12b1d>",
+        "X-RapidAPI-Host": "zillow-com1.p.rapidapi.com"
+    }
+    params = {
+        "location": place,
+        "propertyType": "2-bedroom"
+    }
     try:
         resp = requests.get(url, headers=headers, params=params, timeout=10).json()
+        # You will need to adjust this parsing according to the actual API response
         avg_rent = resp.get("rent", {}).get("average", "N/A")
         avg_price = resp.get("price", {}).get("average", "N/A")
         return {
@@ -109,12 +116,12 @@ def parking_score(lat, lon):
 def get_school_data(lat, lon, radius=2):
     url = "https://api.schooldigger.com/v1.2/schools"
     params = {
-        "st": "",  # optional: state abbreviation
         "lat": lat,
         "lon": lon,
         "distance": radius,
-        "appID": "",  # Not needed for v1.2
-        "appKey": "0568db1c7540e395bb773539fc1d7550"
+        "st": "MA",  # Example: use your state's abbreviation if needed
+        "appID": "<dd845528>",
+        "appKey": "<0568db1c7540e395bb773539fc1d7550>"
     }
     try:
         resp = requests.get(url, params=params, timeout=10).json()
