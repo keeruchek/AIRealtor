@@ -58,8 +58,24 @@ def commute_score(place):
     mode = random.choice(["car", "train", "bus", "bike", "walk"])
     return score, mode
 
-def walkability_score(lat, lon):
-    return random.randint(1, 100)
+def walkability_score(lat, lon, radius=1000):
+    # Define walkable amenities
+    amenity_tags = [
+        'amenity=restaurant', 'amenity=cafe', 'amenity=bar',
+        'shop', 'amenity=pharmacy', 'amenity=bank',
+        'leisure=park', 'amenity=school', 'amenity=library',
+        'amenity=bus_station', 'amenity=theatre', 'amenity=cinema'
+    ]
+    total_count = 0
+    for tag in amenity_tags:
+        label = tag.split('=')[1] if '=' in tag else tag
+        places = get_nearby_places(lat, lon, tag, label, radius)
+        # Ignore error messages or not found
+        places = [p for p in places if not p.startswith("No ") and not p.startswith("Error")]
+        total_count += len(places)
+    # Normalize to a 0-100 scale for walkability
+    score = min(int(total_count * 2), 100)  # Adjust scaling as needed
+    return score
 
 def diversity_index(place):
     return round(random.uniform(0.3, 0.9), 2)
