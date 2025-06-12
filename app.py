@@ -42,20 +42,37 @@ def get_nearby_places(lat, lon, query, label, radius=2000):
         return [f"Error fetching {label}: {e}"]
 
 def avg_housing_cost(place):
-    # Simulate average rent and sale price for 2-bedroom
-    avg_rent_2bed = random.randint(1500, 3500)
-    avg_price_2bed = random.randint(250000, 750000)
-    return {
-        'avg_rent_2bed': f"${avg_rent_2bed:,}",
-        'avg_price_2bed': f"${avg_price_2bed:,}"
-    }
+    url = "https://your_zillow_api_url"
+    headers = {"X-RapidAPI-Key": "d928b8efacmsh3ece55120b24756p168133jsnf6588ac12b1d"}
+    params = {"location": place, "propertyType": "2-bedroom"}
+    try:
+        resp = requests.get(url, headers=headers, params=params, timeout=10).json()
+        avg_rent = resp.get("rent", {}).get("average", "N/A")
+        avg_price = resp.get("price", {}).get("average", "N/A")
+        return {
+            'avg_rent_2bed': f"${avg_rent:,}" if isinstance(avg_rent, (int, float)) else avg_rent,
+            'avg_price_2bed': f"${avg_price:,}" if isinstance(avg_price, (int, float)) else avg_price
+        }
+    except Exception as e:
+        return {'avg_rent_2bed': 'N/A', 'avg_price_2bed': 'N/A'}
 
 def crime_rate(place):
-    return random.choice(['Low', 'Medium', 'High'])
+    url = "https://your_zillow_api_url/crime"
+    headers = {"X-RapidAPI-Key": "d928b8efacmsh3ece55120b24756p168133jsnf6588ac12b1d"}
+    params = {"location": place}
+    try:
+        resp = requests.get(url, headers=headers, params=params, timeout=10).json()
+        # Adjust the field below as per your API’s response structure
+        return resp.get("crime_level", "N/A")
+    except Exception as e:
+        return "N/A"
 
-def commute_score(place):
-    score = random.randint(1, 10)
-    mode = random.choice(["car", "train", "bus", "bike", "walk"])
+def commute_score(lat, lon):
+    # Count public transit stops nearby as a proxy for score
+    transit_places = get_nearby_places(lat, lon, 'public_transport=platform', 'public transit', radius=1000)
+    score = min(len(transit_places), 10)  # Normalize to 0-10
+    # Mode: just return 'transit' if more than 0 stops found
+    mode = "transit" if score > 0 else "car"
     return score, mode
 
 def walkability_score(lat, lon, radius=1000):
@@ -91,11 +108,26 @@ def parking_score(lat, lon):
 def get_all_metrics(place, lat, lon):
     housing = avg_housing_cost(place)
     crime = crime_rate(place)
-    schools = get_nearby_places(lat, lon, 'amenity=school', 'schools') + get_nearby_places(lat, lon, 'amenity=college', 'colleges')
-
-    # Append random rating 1-10 to each school name to simulate ratings
-    schools_with_ratings = [f"{school} (Rating: {random.randint(1,10)}/10)" for school in schools]
-
+    def get_school_data(lat, lon, radius=2):
+    url = "https://api.schooldigger.com/v1.2/schools"
+    params = {
+        "st": "",  # optional: state abbreviation
+        "lat": lat,
+        "lon": lon,
+        "distance": radius,
+        "appID": "",  # Not needed for v1.2
+        "appKey": "0568db1c7540e395bb773539fc1d7550"
+    }
+    try:
+        resp = requests.get(url, params=params, timeout=10).json()
+        schools = []
+        for school in resp.get("schoolList", []):
+            name = school.get("schoolName")
+            rating = school.get("schoolRating", "N/A")
+            schools.append(f"{name} (Rating: {rating}/10)")
+        return schools
+    except Exception as e:
+        return ["N/A"]
     commute_sc, commute_type = commute_score(place)
     parks = get_nearby_places(lat, lon, 'leisure=park', 'parks')
     walk_sc = walkability_score(lat, lon)
