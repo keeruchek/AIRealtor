@@ -84,7 +84,7 @@ def walkability_score(lat, lon):
 
 def get_school_rating(school_name, lat, lon):
     url = "https://api.schooldigger.com/v1.2/schools"
-    api_key = os.environ.get("SCHOOLDIGGER_API_KEY")  # Make sure this matches your Render environment var name
+    api_key = os.environ.get("SCHOOLDIGGER_API_KEY")
     params = {
         "q": school_name,
         "appID": api_key,
@@ -104,18 +104,7 @@ def get_school_rating(school_name, lat, lon):
     except Exception as e:
         print(f"Error fetching rating for {school_name}: {e}")
         return "N/A"
-    try:
-        response = requests.get(url, params=params, timeout=10)
-        data = response.json()
-        print("DEBUG SCHOOL API RESPONSE:", data)  # <--- This line is critical
-        if "schoolList" in data and data["schoolList"]:
-            rating = data["schoolList"][0].get("gsRating")
-            return rating if rating is not None else "N/A"
-        return "N/A"
-    except Exception as e:
-        print(f"Error fetching rating for {school_name}: {e}")
-        return "N/A"
-
+    
 def pet_score(green_count, walk_score):
     return round((green_count * 10 + walk_score) / 2)
 
