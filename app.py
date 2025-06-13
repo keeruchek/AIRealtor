@@ -85,8 +85,16 @@ def walkability_score(lat, lon):
     score = min(100, (len(parks) + len(shops) + len(schools)) * 5)
     return score
 
-def diversity_index(place):
-    return round(random.uniform(0.3, 0.9), 2)
+def get_school_rating(school_name, lat, lon):
+    url = "YOUR_SCHOOL_API_URL"
+    params = {"school": school_name, "lat": lat, "lon": lon}  # adjust as needed
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        data = response.json()
+        # Adjust according to your actual API response structure
+        return data.get("rating", "N/A")
+    except Exception as e:
+        return "N/A"
 
 def pet_score(green_count, walk_score):
     return round((green_count * 10 + walk_score) / 2)
@@ -98,8 +106,9 @@ def parking_score(lat, lon):
 def get_all_metrics(place, lat, lon):
     housing = avg_housing_cost(place)
     crime = crime_rate(place)
-    schools = get_nearby_places(lat, lon, 'amenity=school', 'schools') + get_nearby_places(lat, lon, 'amenity=college', 'colleges')
-    schools_with_ratings = [f"{school} (Rating: {random.randint(1,10)}/10)" for school in schools]
+    schools_with_ratings = [
+    f"{school} (Rating: {get_school_rating(school, lat, lon)}/10)" for school in schools
+    ]
     # Choose your destination for commute scoring (example: Downtown Boston)
     destination = "Downtown Boston, MA"
     destination_lat, destination_lon = geocode_location(destination)
@@ -110,7 +119,7 @@ def get_all_metrics(place, lat, lon):
     shopping = get_nearby_places(lat, lon, 'shop', 'shopping')
     hospitals = get_nearby_places(lat, lon, 'amenity=hospital', 'hospitals')
     parking_ct = parking_score(lat, lon)
-    div_ix = diversity_index(place)
+    
     pet_sc = pet_score(len(parks), walk_sc)
 
     return {
@@ -126,7 +135,6 @@ def get_all_metrics(place, lat, lon):
         "Shopping Nearby": shopping,
         "Hospitals Nearby": hospitals,
         "Parking Score (count)": parking_ct,
-        "Diversity Index": div_ix,
         "PET Score": pet_sc
     }
 
