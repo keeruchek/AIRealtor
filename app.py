@@ -41,7 +41,7 @@ def get_nearby_places(lat, lon, query, label, radius=2000):
         return places[:10] if places else [f"No {label} found"]
     except Exception as e:
         return [f"Error fetching {label}: {e}"]
-}
+
 
 def avg_housing_cost(place):
     avg_rent_2bed = random.randint(1500, 3500)
