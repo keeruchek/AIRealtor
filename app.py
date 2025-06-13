@@ -100,7 +100,10 @@ def get_all_metrics(place, lat, lon):
     crime = crime_rate(place)
     schools = get_nearby_places(lat, lon, 'amenity=school', 'schools') + get_nearby_places(lat, lon, 'amenity=college', 'colleges')
     schools_with_ratings = [f"{school} (Rating: {random.randint(1,10)}/10)" for school in schools]
-    commute_sc, commute_type = commute_score(place)
+    # Choose your destination for commute scoring (example: Downtown Boston)
+    destination = "Downtown Boston, MA"
+    destination_lat, destination_lon = geocode_location(destination)
+    commute_sc, commute_type = commute_score(lat, lon, destination_lat, destination_lon)
     parks = get_nearby_places(lat, lon, 'leisure=park', 'parks')
     walk_sc = walkability_score(lat, lon)
     gyms = get_nearby_places(lat, lon, 'leisure=fitness_centre', 'gyms')
