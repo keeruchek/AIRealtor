@@ -42,13 +42,65 @@ def get_nearby_places(lat, lon, query, label, radius=2000):
     except Exception as e:
         return [f"Error fetching {label}: {e}"]
 
+
+
+# A simple in-memory cache (replace with a file/db if you want persistence)
+LAST_KNOWN = {
+    'avg_rent_2bed': None,
+    'avg_price_2bed': None
+}
+
 def avg_housing_cost(place):
-    avg_rent_2bed = random.randint(1500, 3500)
-    avg_price_2bed = random.randint(250000, 750000)
-    return {
-        'avg_rent_2bed': f"${avg_rent_2bed:,}",
-        'avg_price_2bed': f"${avg_price_2bed:,}"
+    url = "https://zillow-com1.p.rapidapi.com/propertyExtendedSearch"
+    headers = {
+        "X-RapidAPI-Key": os.environ.get("ZILLOW_RAPIDAPI_KEY"),
+        "X-RapidAPI-Host": "zillow-com1.p.rapidapi.com"
     }
+    params = {
+        "location": place,
+        "propertyType": "2-bedroom"
+    }
+    try:
+        resp = requests.get(url, headers=headers, params=params, timeout=10)
+        data = resp.json()
+        print("Zillow API response:", data)
+
+        # Adjust these keys based on your actual API response structure
+        avg_rent = data.get("rent", {}).get("average")
+        avg_price = data.get("price", {}).get("average")
+
+        # If either is missing, fallback to last known
+        if avg_rent is None:
+            avg_rent = LAST_KNOWN['avg_rent_2bed']
+        else:
+            LAST_KNOWN['avg_rent_2bed'] = avg_rent
+
+        if avg_price is None:
+            avg_price = LAST_KNOWN['avg_price_2bed']
+        else:
+            LAST_KNOWN['avg_price_2bed'] = avg_price
+
+        # Round values for nicer display: to nearest $1,000 for rent, $10,000 for price
+        def nice_round(val, base):
+            if val is None:
+                return "N/A"
+            return f"${int(round(val / base) * base):,}"
+
+        return {
+            'avg_rent_2bed': nice_round(avg_rent, 1000),
+            'avg_price_2bed': nice_round(avg_price, 10000)
+        }
+    except Exception as e:
+        print("Error in avg_housing_cost:", e)
+        # Fallback to last known if available
+        def nice_round(val, base):
+            if val is None:
+                return "N/A"
+            return f"${int(round(val / base) * base):,}"
+        return {
+            'avg_rent_2bed': nice_round(LAST_KNOWN['avg_rent_2bed'], 1000),
+            'avg_price_2bed': nice_round(LAST_KNOWN['avg_price_2bed'], 10000)
+        }
 
 def crime_rate(place):
     return random.choice(['Low', 'Medium', 'High'])
