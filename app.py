@@ -55,11 +55,14 @@ def avg_housing_cost(place):
     try:
         resp = requests.get(url, headers=headers, params=params, timeout=10)
         data = resp.json()
-        print("Zillow API response:", data)  # Debug print
+        print("Zillow API response:", data)  # This will appear in your Render logs
 
-        # Adjust based on real response
+        # Depending on the actual response, adjust these keys.
+        # Log the data to find the correct path if this fails.
         avg_rent = data.get("rent", {}).get("average", "N/A")
         avg_price = data.get("price", {}).get("average", "N/A")
+
+        # If the above returns 'N/A', inspect the data structure and adjust accordingly
         return {
             'avg_rent_2bed': f"${avg_rent:,}" if isinstance(avg_rent, (int, float)) else avg_rent,
             'avg_price_2bed': f"${avg_price:,}" if isinstance(avg_price, (int, float)) else avg_price
