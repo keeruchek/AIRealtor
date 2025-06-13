@@ -84,12 +84,21 @@ def walkability_score(lat, lon):
 
 def get_school_rating(school_name, lat, lon):
     url = "https://api.schooldigger.com/v1.2/schools"
-    params = {"school": school_name, "lat": lat, "lon": lon}
+    api_key = os.environ.get("SCHOOLDIGGER_API_KEY")  # or whatever your env var is called
+    params = {
+        "st": "",  # optional: state abbreviation if you have it
+        "q": school_name,
+        "appID": api_key,   # check docs, sometimes it's "appID" or "appKey"
+        # "appKey": api_key  # uncomment if your API uses this
+        "lat": lat,
+        "lon": lon,
+        "distance": 1  # distance in miles, adjust as needed
+    }
     try:
         response = requests.get(url, params=params, timeout=10)
         data = response.json()
-        # Adjust for your actual API output
-        if data.get("schoolList") and len(data["schoolList"]) > 0:
+        # print(f"DEBUG: {data}")  # Uncomment to see response in logs
+        if "schoolList" in data and data["schoolList"]:
             rating = data["schoolList"][0].get("gsRating")
             return rating if rating is not None else "N/A"
         return "N/A"
