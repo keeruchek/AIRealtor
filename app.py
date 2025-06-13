@@ -84,32 +84,27 @@ def walkability_score(lat, lon):
     score = min(100, (len(parks) + len(shops) + len(schools)) * 5)
     return score
 
-def get_school_rating(school_name, state):
+def get_top_school_rankings(state, city=None, top_n=10):
     import os
     import requests
     api_key = os.environ.get("SCHOOLDIGGER_API_KEY")
     rankings_url = f"https://api.schooldigger.com/v1.2/rankings/schools/{state}"
     params = {"appID": api_key, "appKey": api_key}
-    print(f"Looking for school '{school_name}' in state '{state}'")
     try:
         response = requests.get(rankings_url, params=params, timeout=10)
         data = response.json()
         if "schoolRankings" not in data:
-            print("No schoolRankings in response")
-            return "N/A"
-        for school in data["schoolRankings"]:
-            print("Comparing to:", school.get("schoolName", ""))
-            if school_name.lower() in school.get("schoolName", "").lower():
-                print("Match found:", school)
-                rating = school.get("gsRating")
-                if rating is not None:
-                    return f"{rating}/10"
-                return str(school.get("rank", "N/A"))
-        print("No match found for", school_name)
-        return "N/A"
+            return ["No ranking data found."]
+        schools = data["schoolRankings"]
+        # Optionally filter by city if provided
+        if city:
+            schools = [s for s in schools if city.lower() in s.get("city", "").lower()]
+        return [
+            f"{s.get('schoolName', 'Unknown')} (Rank: {s.get('rank', 'N/A')}, GS Rating: {s.get('gsRating', 'N/A')}/10)"
+            for s in schools[:top_n]
+        ]
     except Exception as e:
-        print("Error fetching rankings:", e)
-        return "N/A"
+        return [f"Error fetching rankings: {e}"]
     
 def pet_score(green_count, walk_score):
     return round((green_count * 10 + walk_score) / 2)
@@ -121,10 +116,8 @@ def parking_score(lat, lon):
 def get_all_metrics(place, lat, lon, state):
     housing = avg_housing_cost(place)
     crime = crime_rate(place)
-    schools = get_nearby_places(lat, lon, 'amenity=school', 'schools') + get_nearby_places(lat, lon, 'amenity=college', 'colleges')
-    schools_with_ratings = [
-    f"{school} (Rating: {get_school_rating(school, state)})" for school in schools
-    ]
+    city = place.split(",")[0] if "," in place else None
+    schools_with_rankings = get_top_school_rankings(state, city)
     # Choose your destination for commute scoring (example: Downtown Boston)
     destination = "Downtown Boston, MA"
     destination_lat, destination_lon, _ = geocode_location(destination)
