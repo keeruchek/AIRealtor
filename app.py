@@ -103,8 +103,9 @@ def parking_score(lat, lon):
 def get_all_metrics(place, lat, lon):
     housing = avg_housing_cost(place)
     crime = crime_rate(place)
+    schools = get_nearby_places(lat, lon, 'amenity=school', 'schools') + get_nearby_places(lat, lon, 'amenity=college', 'colleges')
     schools_with_ratings = [
-    f"{school} (Rating: {get_school_rating(school, lat, lon)}/10)" for school in schools
+        f"{school} (Rating: {get_school_rating(school, lat, lon)}/10)" for school in schools
     ]
     # Choose your destination for commute scoring (example: Downtown Boston)
     destination = "Downtown Boston, MA"
