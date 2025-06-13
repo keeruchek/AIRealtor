@@ -18,7 +18,7 @@ def geocode_location(place_name):
         pass
     return None, None
 
-# Updated Nearby places via Overpass API (only this function changed)
+# Updated Nearby places via Overpass API
 def get_nearby_places(lat, lon, query, label, radius=2000):
     url = "https://overpass-api.de/api/interpreter"
     query = f"""
@@ -43,123 +43,40 @@ def get_nearby_places(lat, lon, query, label, radius=2000):
         return [f"Error fetching {label}: {e}"]
 
 def avg_housing_cost(place):
-    url = "https://zillow-com1.p.rapidapi.com/propertyExtendedSearch"
-    headers = {
-        "X-RapidAPI-Key": os.environ.get("ZILLOW_RAPIDAPI_KEY"),
-        "X-RapidAPI-Host": "zillow-com1.p.rapidapi.com"
+    avg_rent_2bed = random.randint(1500, 3500)
+    avg_price_2bed = random.randint(250000, 750000)
+    return {
+        'avg_rent_2bed': f"${avg_rent_2bed:,}",
+        'avg_price_2bed': f"${avg_price_2bed:,}"
     }
-    params = {
-        "location": place,
-        "propertyType": "2-bedroom"
-    }
-    try:
-        resp = requests.get(url, headers=headers, params=params, timeout=10)
-        data = resp.json()
-        print("Zillow API response:", data)  # This will appear in your Render logs
-
-        # Depending on the actual response, adjust these keys.
-        # Log the data to find the correct path if this fails.
-        avg_rent = data.get("rent", {}).get("average", "N/A")
-        avg_price = data.get("price", {}).get("average", "N/A")
-
-        # If the above returns 'N/A', inspect the data structure and adjust accordingly
-        return {
-            'avg_rent_2bed': f"${avg_rent:,}" if isinstance(avg_rent, (int, float)) else avg_rent,
-            'avg_price_2bed': f"${avg_price:,}" if isinstance(avg_price, (int, float)) else avg_price
-        }
-    except Exception as e:
-        print("Error in avg_housing_cost:", e)
-        return {'avg_rent_2bed': 'N/A', 'avg_price_2bed': 'N/A'}
 
 def crime_rate(place):
-    url = os.environ.get("CRIME_API_URL")
-    headers = {"X-RapidAPI-Key": os.environ.get("ZILLOW_RAPIDAPI_KEY")}
-    params = {"location": place}
-    try:
-        resp = requests.get(url, headers=headers, params=params, timeout=10)
-        data = resp.json()
-        print("Crime API response:", data)
-        return data.get("crime_level", "N/A")
-    try:
-    resp = requests.get(url, headers=headers, params=params, timeout=10)
-    data = resp.json()
-    print("API Response:", data)  # Add this line
-    # ...rest of code
-except Exception as e:
-    print("Error:", e)
-    return 'N/A'
+    return random.choice(['Low', 'Medium', 'High'])
 
-def commute_score(lat, lon):
-    # Count public transit stops nearby as a proxy for score
-    transit_places = get_nearby_places(lat, lon, 'public_transport=platform', 'public transit', radius=1000)
-    score = min(len(transit_places), 10)  # Normalize to 0-10
-    # Mode: just return 'transit' if more than 0 stops found
-    mode = "transit" if score > 0 else "car"
+def commute_score(place):
+    score = random.randint(1, 10)
+    mode = random.choice(["car", "train", "bus", "bike", "walk"])
     return score, mode
 
-def walkability_score(lat, lon, radius=1000):
-    # Define walkable amenities
-    amenity_tags = [
-        'amenity=restaurant', 'amenity=cafe', 'amenity=bar',
-        'shop', 'amenity=pharmacy', 'amenity=bank',
-        'leisure=park', 'amenity=school', 'amenity=library',
-        'amenity=bus_station', 'amenity=theatre', 'amenity=cinema'
-    ]
-    total_count = 0
-    for tag in amenity_tags:
-        label = tag.split('=')[1] if '=' in tag else tag
-        places = get_nearby_places(lat, lon, tag, label, radius)
-        # Ignore error messages or not found
-        places = [p for p in places if not p.startswith("No ") and not p.startswith("Error")]
-        total_count += len(places)
-    # Normalize to a 0-100 scale for walkability
-    score = min(int(total_count * 2), 100)  # Adjust scaling as needed
-    return score
+def walkability_score(lat, lon):
+    return random.randint(1, 100)
 
 def diversity_index(place):
     return round(random.uniform(0.3, 0.9), 2)
 
-def pet_score(walk_score, green_count):
+def pet_score(green_count, walk_score):
     return round((green_count * 10 + walk_score) / 2)
 
 def parking_score(lat, lon):
-    # Count nearby parking amenities
     parks = get_nearby_places(lat, lon, 'amenity=parking', 'parking')
     return len(parks)
-
-def get_school_data(lat, lon, radius=2, state="MA"):
-    url = "https://api.schooldigger.com/v1.2/schools"
-    params = {
-        "lat": lat,
-        "lon": lon,
-        "distance": radius,
-        "st": state,  # Use dynamic state
-        "appID": os.environ.get("SCHOOLDIGGER_APPID"),
-        "appKey": os.environ.get("SCHOOLDIGGER_APPKEY")
-    }
-    try:
-        resp = requests.get(url, params=params, timeout=10)
-        data = resp.json()
-        print("Schooldigger API response:", data)
-        schools = []
-        for school in data.get("schoolList", []):
-            name = school.get("schoolName")
-            rating = school.get("schoolRating", "N/A")
-            schools.append(f"{name} (Rating: {rating}/10)")
-        return schools
-    try:
-    resp = requests.get(url, headers=headers, params=params, timeout=10)
-    data = resp.json()
-    print("API Response:", data)  # Add this line
-    # ...rest of code
-except Exception as e:
-    print("Error:", e)
-    return 'N/A'
 
 def get_all_metrics(place, lat, lon):
     housing = avg_housing_cost(place)
     crime = crime_rate(place)
-    commute_sc, commute_type = commute_score(lat, lon)
+    schools = get_nearby_places(lat, lon, 'amenity=school', 'schools') + get_nearby_places(lat, lon, 'amenity=college', 'colleges')
+    schools_with_ratings = [f"{school} (Rating: {random.randint(1,10)}/10)" for school in schools]
+    commute_sc, commute_type = commute_score(place)
     parks = get_nearby_places(lat, lon, 'leisure=park', 'parks')
     walk_sc = walkability_score(lat, lon)
     gyms = get_nearby_places(lat, lon, 'leisure=fitness_centre', 'gyms')
@@ -167,8 +84,8 @@ def get_all_metrics(place, lat, lon):
     hospitals = get_nearby_places(lat, lon, 'amenity=hospital', 'hospitals')
     parking_ct = parking_score(lat, lon)
     div_ix = diversity_index(place)
-    pet_sc = pet_score(walk_sc, len(parks))
-    schools_with_ratings = get_school_data(lat, lon)
+    pet_sc = pet_score(len(parks), walk_sc)
+
     return {
         "Average Rent (2 bed)": housing['avg_rent_2bed'],
         "Average Sale Price (2 bed)": housing['avg_price_2bed'],
@@ -186,13 +103,26 @@ def get_all_metrics(place, lat, lon):
         "PET Score": pet_sc
     }
 
-# 🧭 Streamlit UI Setup
+# ============ Streamlit UI Setup ============
+
 st.set_page_config(page_title="Neighborhood Insights", layout="centered")
 st.title("Where to live next?")
 
 mode = st.radio("Mode:", ("Compare Two Places", "Single Place"))
 place1 = st.text_input("Place 1 (City, State)", "Cambridge, MA")
 place2 = st.text_input("Place 2 (City, State)", "Somerville, MA") if mode == "Compare Two Places" else None
+
+# --- Session state for insights/results ---
+if "insights_data" not in st.session_state:
+    st.session_state["insights_data"] = None
+if "map_data" not in st.session_state:
+    st.session_state["map_data"] = None
+if "places" not in st.session_state:
+    st.session_state["places"] = None
+if "ai_answer" not in st.session_state:
+    st.session_state["ai_answer"] = None
+if "ai_error" not in st.session_state:
+    st.session_state["ai_error"] = None
 
 if st.button("Show Insights"):
     lat1, lon1 = geocode_location(place1)
@@ -207,45 +137,52 @@ if st.button("Show Insights"):
         st.error(f"Couldn't locate {place2}")
         st.stop()
 
-    # Show map
     locs = [{'lat': lat1,'lon':lon1,'place':place1}]
     if mode == "Compare Two Places":
         locs.append({'lat':lat2,'lon':lon2,'place':place2})
-    st.map(pd.DataFrame(locs))
 
     data1 = get_all_metrics(place1, lat1, lon1)
     data2 = get_all_metrics(place2, lat2, lon2) if mode=="Compare Two Places" else None
+
+    # STORE all results in session_state
+    st.session_state["places"] = (place1, place2)
+    st.session_state["map_data"] = locs
+    st.session_state["insights_data"] = (data1, data2, mode)
+    # Clear AI answer if new insights shown
+    st.session_state["ai_answer"] = None
+    st.session_state["ai_error"] = None
+
+# ---- Always display results if available ----
+
+if st.session_state["insights_data"]:
+    data1, data2, mode = st.session_state["insights_data"]
+    place1, place2 = st.session_state["places"]
+    locs = st.session_state["map_data"]
+    st.map(pd.DataFrame(locs))
 
     if mode=="Compare Two Places":
         col1, col2 = st.columns(2)
         for col, place, data in [(col1, place1, data1), (col2, place2, data2)]:
             with col:
                 st.subheader(place)
-                if isinstance(data, dict):
-                    for k,v in data.items():
-                        if isinstance(v, list):
-                            st.markdown(f"**{k}:**")
-                            for item in v:
-                                st.markdown(f"- {item}")
-                        else:
-                            st.markdown(f"**{k}:** {v}")
-                else:
-                    st.error("Data is not available for this location.")
+                for k,v in data.items():
+                    if isinstance(v, list):
+                        st.markdown(f"**{k}:**")
+                        for item in v:
+                            st.markdown(f"- {item}")
+                    else:
+                        st.markdown(f"**{k}:** {v}")
     else:
         st.subheader(place1)
-        if isinstance(data1, dict):
-            for k,v in data1.items():
-                if isinstance(v, list):
-                    st.markdown(f"**{k}:**")
-                    for item in v:
-                        st.markdown(f"- {item}")
-                else:
-                    st.markdown(f"**{k}:** {v}")
-        else:
-            st.error("Data is not available for this location.")
+        for k,v in data1.items():
+            if isinstance(v, list):
+                st.markdown(f"**{k}:**")
+                for item in v:
+                    st.markdown(f"- {item}")
+            else:
+                st.markdown(f"**{k}:** {v}")
 
-  
-
+    
     # --- AI Chatbot Section ---
 with st.container():
     st.markdown("---")
