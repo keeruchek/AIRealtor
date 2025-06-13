@@ -45,7 +45,7 @@ def get_nearby_places(lat, lon, query, label, radius=2000):
 def avg_housing_cost(place):
     url = "https://zillow-com1.p.rapidapi.com/propertyExtendedSearch"
     headers = {
-        "X-RapidAPI-Key": "<d928b8efacmsh3ece55120b24756p168133jsnf6588ac12b1d>",
+        "X-RapidAPI-Key": os.environ.get("ZILLOW_RAPIDAPI_KEY"),
         "X-RapidAPI-Host": "zillow-com1.p.rapidapi.com"
     }
     params = {
@@ -53,26 +53,31 @@ def avg_housing_cost(place):
         "propertyType": "2-bedroom"
     }
     try:
-        resp = requests.get(url, headers=headers, params=params, timeout=10).json()
-        # You will need to adjust this parsing according to the actual API response
-        avg_rent = resp.get("rent", {}).get("average", "N/A")
-        avg_price = resp.get("price", {}).get("average", "N/A")
+        resp = requests.get(url, headers=headers, params=params, timeout=10)
+        data = resp.json()
+        print("Zillow API response:", data)
+        # Adjust below if actual API structure changes
+        avg_rent = data.get("rent", {}).get("average", "N/A")
+        avg_price = data.get("price", {}).get("average", "N/A")
         return {
             'avg_rent_2bed': f"${avg_rent:,}" if isinstance(avg_rent, (int, float)) else avg_rent,
             'avg_price_2bed': f"${avg_price:,}" if isinstance(avg_price, (int, float)) else avg_price
         }
     except Exception as e:
+        print(f"Error in avg_housing_cost: {e}")
         return {'avg_rent_2bed': 'N/A', 'avg_price_2bed': 'N/A'}
 
 def crime_rate(place):
-    url = "https://your_zillow_api_url/crime"
-    headers = {"X-RapidAPI-Key": "d928b8efacmsh3ece55120b24756p168133jsnf6588ac12b1d"}
+    url = os.environ.get("CRIME_API_URL")
+    headers = {"X-RapidAPI-Key": os.environ.get("ZILLOW_RAPIDAPI_KEY")}
     params = {"location": place}
     try:
-        resp = requests.get(url, headers=headers, params=params, timeout=10).json()
-        # Adjust the field below as per your API’s response structure
-        return resp.get("crime_level", "N/A")
+        resp = requests.get(url, headers=headers, params=params, timeout=10)
+        data = resp.json()
+        print("Crime API response:", data)
+        return data.get("crime_level", "N/A")
     except Exception as e:
+        print(f"Error in crime_rate: {e}")
         return "N/A"
 
 def commute_score(lat, lon):
@@ -113,25 +118,28 @@ def parking_score(lat, lon):
     parks = get_nearby_places(lat, lon, 'amenity=parking', 'parking')
     return len(parks)
 
-def get_school_data(lat, lon, radius=2):
+def get_school_data(lat, lon, radius=2, state="MA"):
     url = "https://api.schooldigger.com/v1.2/schools"
     params = {
         "lat": lat,
         "lon": lon,
         "distance": radius,
-        "st": "MA",  # Example: use your state's abbreviation if needed
-        "appID": "<dd845528>",
-        "appKey": "<0568db1c7540e395bb773539fc1d7550>"
+        "st": state,  # Use dynamic state
+        "appID": os.environ.get("SCHOOLDIGGER_APPID"),
+        "appKey": os.environ.get("SCHOOLDIGGER_APPKEY")
     }
     try:
-        resp = requests.get(url, params=params, timeout=10).json()
+        resp = requests.get(url, params=params, timeout=10)
+        data = resp.json()
+        print("Schooldigger API response:", data)
         schools = []
-        for school in resp.get("schoolList", []):
+        for school in data.get("schoolList", []):
             name = school.get("schoolName")
             rating = school.get("schoolRating", "N/A")
             schools.append(f"{name} (Rating: {rating}/10)")
         return schools
     except Exception as e:
+        print(f"Error in get_school_data: {e}")
         return ["N/A"]
 
 def get_all_metrics(place, lat, lon):
