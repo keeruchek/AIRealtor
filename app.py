@@ -135,7 +135,7 @@ def get_all_metrics(place, lat, lon, state):
         "Average Rent (2 bed)": housing['avg_rent_2bed'],
         "Average Sale Price (2 bed)": housing['avg_price_2bed'],
         "Crime Rate": crime,
-        "Schools Nearby": schools_with_ratings,
+        "Top Ranked Schools": schools_with_rankings,
         "Commute Score": commute_sc,
         "Transit Type": commute_type,
         "Green Space (parks count)": len(parks),
