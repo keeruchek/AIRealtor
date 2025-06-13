@@ -41,77 +41,67 @@ def get_nearby_places(lat, lon, query, label, radius=2000):
         return places[:10] if places else [f"No {label} found"]
     except Exception as e:
         return [f"Error fetching {label}: {e}"]
-
-
-
-# A simple in-memory cache (replace with a file/db if you want persistence)
-LAST_KNOWN = {
-    'avg_rent_2bed': None,
-    'avg_price_2bed': None
 }
 
 def avg_housing_cost(place):
-    url = "https://zillow-com1.p.rapidapi.com/propertyExtendedSearch"
-    headers = {
-        "X-RapidAPI-Key": os.environ.get("ZILLOW_RAPIDAPI_KEY"),
-        "X-RapidAPI-Host": "zillow-com1.p.rapidapi.com"
+    avg_rent_2bed = random.randint(1500, 3500)
+    avg_price_2bed = random.randint(250000, 750000)
+    return {
+        'avg_rent_2bed': f"${avg_rent_2bed:,}",
+        'avg_price_2bed': f"${avg_price_2bed:,}"
     }
-    params = {
-        "location": place,
-        "propertyType": "2-bedroom"
-    }
-    try:
-        resp = requests.get(url, headers=headers, params=params, timeout=10)
-        data = resp.json()
-        print("Zillow API response:", data)
-
-        # Adjust these keys based on your actual API response structure
-        avg_rent = data.get("rent", {}).get("average")
-        avg_price = data.get("price", {}).get("average")
-
-        # If either is missing, fallback to last known
-        if avg_rent is None:
-            avg_rent = LAST_KNOWN['avg_rent_2bed']
-        else:
-            LAST_KNOWN['avg_rent_2bed'] = avg_rent
-
-        if avg_price is None:
-            avg_price = LAST_KNOWN['avg_price_2bed']
-        else:
-            LAST_KNOWN['avg_price_2bed'] = avg_price
-
-        # Round values for nicer display: to nearest $1,000 for rent, $10,000 for price
-        def nice_round(val, base):
-            if val is None:
-                return "N/A"
-            return f"${int(round(val / base) * base):,}"
-
-        return {
-            'avg_rent_2bed': nice_round(avg_rent, 1000),
-            'avg_price_2bed': nice_round(avg_price, 10000)
-        }
-    except Exception as e:
-        print("Error in avg_housing_cost:", e)
-        # Fallback to last known if available
-        def nice_round(val, base):
-            if val is None:
-                return "N/A"
-            return f"${int(round(val / base) * base):,}"
-        return {
-            'avg_rent_2bed': nice_round(LAST_KNOWN['avg_rent_2bed'], 1000),
-            'avg_price_2bed': nice_round(LAST_KNOWN['avg_price_2bed'], 10000)
-        }
 
 def crime_rate(place):
     return random.choice(['Low', 'Medium', 'High'])
 
-def commute_score(place):
-    score = random.randint(1, 10)
-    mode = random.choice(["car", "train", "bus", "bike", "walk"])
-    return score, mode
+import requests
+import os
 
-def walkability_score(lat, lon):
-    return random.randint(1, 100)
+def commute_score(lat, lon, destination_lat, destination_lon):
+    api_key = os.environ.get("ORS_API_KEY")
+    url = f"https://api.openrouteservice.org/v2/directions/driving-car"
+    params = {
+        "api_key": api_key,
+        "start": f"{lon},{lat}",
+        "end": f"{destination_lon},{destination_lat}"
+    }
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        data = response.json()
+        duration = data['features'][0]['properties']['summary']['duration'] // 60  # minutes
+        # Score: invert duration, you can calibrate this
+        score = max(1, 10 - int(duration // 10))
+        mode = "car"
+        return score, mode
+    except Exception as e:
+        print("Commute Score API error:", e)
+        return "N/A", "N/A"
+
+def commute_score(lat, lon, dest_lat, dest_lon, mode="driving-car"):
+    api_key = os.environ.get("ORS_API_KEY")
+    url = f"https://api.openrouteservice.org/v2/directions/{mode}"
+    headers = {"Authorization": api_key}
+    params = {
+        "start": f"{lon},{lat}",
+        "end": f"{dest_lon},{dest_lat}"
+    }
+    try:
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+        data = response.json()
+        duration = data['features'][0]['properties']['summary']['duration'] // 60  # in minutes
+        # Score: lower duration = higher score (customize as needed)
+        score = max(1, 10 - int(duration // 10))
+        return score, mode.replace("-", " ")
+    except Exception as e:
+        print("Commute Score ORS error:", e)
+        return "N/A", "N/A"
+    def walkability_score(lat, lon):
+    parks = get_nearby_places(lat, lon, 'leisure=park', 'parks')
+    shops = get_nearby_places(lat, lon, 'shop', 'shops')
+    schools = get_nearby_places(lat, lon, 'amenity=school', 'schools')
+    # Simple formula: more amenities = higher score (scale to 100)
+    score = min(100, (len(parks) + len(shops) + len(schools)) * 5)
+    return score
 
 def diversity_index(place):
     return round(random.uniform(0.3, 0.9), 2)
