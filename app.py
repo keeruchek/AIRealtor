@@ -93,16 +93,19 @@ def get_top_school_rankings(state, city=None, top_n=10):
     try:
         response = requests.get(rankings_url, params=params, timeout=10)
         data = response.json()
-        if "schoolRankings" not in data:
+        if "schoolList" not in data or not data["schoolList"]:
             return ["No ranking data found."]
-        schools = data["schoolRankings"]
+        schools = data["schoolList"]
         # Optionally filter by city if provided
         if city:
-            schools = [s for s in schools if city.lower() in s.get("city", "").lower()]
+            schools = [s for s in schools if city.lower() in s.get("address", {}).get("city", "").lower()]
         return [
-            f"{s.get('schoolName', 'Unknown')} (Rank: {s.get('rank', 'N/A')}, GS Rating: {s.get('gsRating', 'N/A')}/10)"
+            f"{s.get('schoolName', 'Unknown')} (Rank: {s.get('rankHistory', [{}])[0].get('rank', 'N/A')}, " +
+            f"GS Rating: {s.get('rankHistory', [{}])[0].get('rankStars', 'N/A')}/5, " +
+            f"Grades: {s.get('lowGrade', 'N/A')}-{s.get('highGrade', 'N/A')}, " +
+            f"City: {s.get('address', {}).get('city', 'Unknown')})"
             for s in schools[:top_n]
-        ]
+         ]
     except Exception as e:
         return [f"Error fetching rankings: {e}"]
     
