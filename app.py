@@ -128,7 +128,7 @@ def get_all_metrics(place, lat, lon, state):
     ]
     # Choose your destination for commute scoring (example: Downtown Boston)
     destination = "Downtown Boston, MA"
-    destination_lat, destination_lon = geocode_location(destination)
+    destination_lat, destination_lon, _ = geocode_location(destination)
     commute_sc, commute_type = commute_score(lat, lon, destination_lat, destination_lon)
     parks = get_nearby_places(lat, lon, 'leisure=park', 'parks')
     walk_sc = walkability_score(lat, lon)
