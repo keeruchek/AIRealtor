@@ -55,22 +55,18 @@ def avg_housing_cost(place):
     try:
         resp = requests.get(url, headers=headers, params=params, timeout=10)
         data = resp.json()
-        print("Zillow API response:", data)
-        # Adjust below if actual API structure changes
+        print("Zillow API response:", data)  # Debug print
+
+        # Adjust based on real response
         avg_rent = data.get("rent", {}).get("average", "N/A")
         avg_price = data.get("price", {}).get("average", "N/A")
         return {
             'avg_rent_2bed': f"${avg_rent:,}" if isinstance(avg_rent, (int, float)) else avg_rent,
             'avg_price_2bed': f"${avg_price:,}" if isinstance(avg_price, (int, float)) else avg_price
         }
-    try:
-    resp = requests.get(url, headers=headers, params=params, timeout=10)
-    data = resp.json()
-    print("API Response:", data)  # Add this line
-    # ...rest of code
-except Exception as e:
-    print("Error:", e)
-    return 'N/A'
+    except Exception as e:
+        print("Error in avg_housing_cost:", e)
+        return {'avg_rent_2bed': 'N/A', 'avg_price_2bed': 'N/A'}
 
 def crime_rate(place):
     url = os.environ.get("CRIME_API_URL")
