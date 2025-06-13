@@ -84,13 +84,17 @@ def walkability_score(lat, lon):
 
 def get_school_rating(school_name, lat, lon):
     url = "https://api.schooldigger.com/v1.2/schools"
-    params = {"school": school_name, "lat": lat, "lon": lon}  # adjust as needed
+    params = {"school": school_name, "lat": lat, "lon": lon}
     try:
         response = requests.get(url, params=params, timeout=10)
         data = response.json()
-        # Adjust according to your actual API response structure
-        return data.get("rating", "N/A")
+        # Adjust for your actual API output
+        if data.get("schoolList") and len(data["schoolList"]) > 0:
+            rating = data["schoolList"][0].get("gsRating")
+            return rating if rating is not None else "N/A"
+        return "N/A"
     except Exception as e:
+        print(f"Error fetching rating for {school_name}: {e}")
         return "N/A"
 
 def pet_score(green_count, walk_score):
