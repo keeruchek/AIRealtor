@@ -13,10 +13,12 @@ def geocode_location(place_name):
         resp = requests.get(url, params=params, timeout=10).json()
         if resp.get('results'):
             geo = resp['results'][0]['geometry']
-            return geo['lat'], geo['lng']
+            components = resp['results'][0].get('components', {})
+            state = components.get('state_code') or components.get('state')
+            return geo['lat'], geo['lng'], state
     except:
         pass
-    return None, None
+    return None, None, None
 
 # Updated Nearby places via Overpass API
 def get_nearby_places(lat, lon, query, label, radius=2000):
@@ -117,7 +119,7 @@ def parking_score(lat, lon):
     parks = get_nearby_places(lat, lon, 'amenity=parking', 'parking')
     return len(parks)
 
-def get_all_metrics(place, lat, lon):
+def get_all_metrics(place, lat, lon, state):
     housing = avg_housing_cost(place)
     crime = crime_rate(place)
     schools = get_nearby_places(lat, lon, 'amenity=school', 'schools') + get_nearby_places(lat, lon, 'amenity=college', 'colleges')
@@ -175,10 +177,10 @@ if "ai_error" not in st.session_state:
     st.session_state["ai_error"] = None
 
 if st.button("Show Insights"):
-    lat1, lon1 = geocode_location(place1)
-    lat2, lon2 = (None, None)
+    lat1, lon1, state1 = geocode_location(place1)
+    lat2, lon2, state2 = (None, None, None)
     if mode == "Compare Two Places":
-        lat2, lon2 = geocode_location(place2)
+        lat2, lon2, state2 = geocode_location(place2)
 
     if lat1 is None:
         st.error(f"Couldn't locate {place1}")
@@ -191,8 +193,8 @@ if st.button("Show Insights"):
     if mode == "Compare Two Places":
         locs.append({'lat':lat2,'lon':lon2,'place':place2})
 
-    data1 = get_all_metrics(place1, lat1, lon1)
-    data2 = get_all_metrics(place2, lat2, lon2) if mode=="Compare Two Places" else None
+    data1 = get_all_metrics(place1, lat1, lon1, state1)
+    data2 = get_all_metrics(place2, lat2, lon2, state2) if mode=="Compare Two Places" else None
 
     # STORE all results in session_state
     st.session_state["places"] = (place1, place2)
