@@ -77,25 +77,7 @@ def commute_score(lat, lon, destination_lat, destination_lon):
         print("Commute Score API error:", e)
         return "N/A", "N/A"
 
-def commute_score(lat, lon, dest_lat, dest_lon, mode="driving-car"):
-    api_key = os.environ.get("ORS_API_KEY")
-    url = f"https://api.openrouteservice.org/v2/directions/{mode}"
-    headers = {"Authorization": api_key}
-    params = {
-        "start": f"{lon},{lat}",
-        "end": f"{dest_lon},{dest_lat}"
-    }
-    try:
-        response = requests.get(url, headers=headers, params=params, timeout=10)
-        data = response.json()
-        duration = data['features'][0]['properties']['summary']['duration'] // 60  # in minutes
-        # Score: lower duration = higher score (customize as needed)
-        score = max(1, 10 - int(duration // 10))
-        return score, mode.replace("-", " ")
-    except Exception as e:
-        print("Commute Score ORS error:", e)
-        return "N/A", "N/A"
-    def walkability_score(lat, lon):
+def walkability_score(lat, lon):
     parks = get_nearby_places(lat, lon, 'leisure=park', 'parks')
     shops = get_nearby_places(lat, lon, 'shop', 'shops')
     schools = get_nearby_places(lat, lon, 'amenity=school', 'schools')
