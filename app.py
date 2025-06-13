@@ -54,9 +54,6 @@ def avg_housing_cost(place):
 def crime_rate(place):
     return random.choice(['Low', 'Medium', 'High'])
 
-import requests
-import os
-
 def commute_score(lat, lon, destination_lat, destination_lon):
     api_key = os.environ.get("ORS_API_KEY")
     url = f"https://api.openrouteservice.org/v2/directions/driving-car"
@@ -86,7 +83,7 @@ def walkability_score(lat, lon):
     return score
 
 def get_school_rating(school_name, lat, lon):
-    url = "YOUR_SCHOOL_API_URL"
+    url = "https://api.schooldigger.com/v1.2/schools"
     params = {"school": school_name, "lat": lat, "lon": lon}  # adjust as needed
     try:
         response = requests.get(url, params=params, timeout=10)
