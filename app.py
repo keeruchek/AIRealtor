@@ -96,7 +96,7 @@ def get_school_rating(school_name, lat, lon):
     try:
         response = requests.get(url, params=params, timeout=10)
         data = response.json()
-        print("DEBUG SCHOOL API RESPONSE:", data)  # <--- Add this line
+        print("DEBUG SCHOOL API RESPONSE:", data)  # <--- This line is critical
         if "schoolList" in data and data["schoolList"]:
             rating = data["schoolList"][0].get("gsRating")
             return rating if rating is not None else "N/A"
