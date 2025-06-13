@@ -89,24 +89,23 @@ def get_school_rating(school_name, state):
     import requests
     api_key = os.environ.get("SCHOOLDIGGER_API_KEY")
     rankings_url = f"https://api.schooldigger.com/v1.2/rankings/schools/{state}"
-    params = {
-        "appID": api_key,
-        "appKey": api_key
-    }
+    params = {"appID": api_key, "appKey": api_key}
+    print(f"Looking for school '{school_name}' in state '{state}'")
     try:
         response = requests.get(rankings_url, params=params, timeout=10)
         data = response.json()
-        print("DEBUG SCHOOL RANKINGS API RESPONSE:", data)
         if "schoolRankings" not in data:
+            print("No schoolRankings in response")
             return "N/A"
         for school in data["schoolRankings"]:
-            # Try to match by school name (case-insensitive, best effort)
+            print("Comparing to:", school.get("schoolName", ""))
             if school_name.lower() in school.get("schoolName", "").lower():
+                print("Match found:", school)
                 rating = school.get("gsRating")
                 if rating is not None:
                     return f"{rating}/10"
-                # Or use rank, or other fields if you prefer
                 return str(school.get("rank", "N/A"))
+        print("No match found for", school_name)
         return "N/A"
     except Exception as e:
         print("Error fetching rankings:", e)
