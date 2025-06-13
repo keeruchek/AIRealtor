@@ -63,9 +63,14 @@ def avg_housing_cost(place):
             'avg_rent_2bed': f"${avg_rent:,}" if isinstance(avg_rent, (int, float)) else avg_rent,
             'avg_price_2bed': f"${avg_price:,}" if isinstance(avg_price, (int, float)) else avg_price
         }
-    except Exception as e:
-        print(f"Error in avg_housing_cost: {e}")
-        return {'avg_rent_2bed': 'N/A', 'avg_price_2bed': 'N/A'}
+    try:
+    resp = requests.get(url, headers=headers, params=params, timeout=10)
+    data = resp.json()
+    print("API Response:", data)  # Add this line
+    # ...rest of code
+except Exception as e:
+    print("Error:", e)
+    return 'N/A'
 
 def crime_rate(place):
     url = os.environ.get("CRIME_API_URL")
@@ -76,9 +81,14 @@ def crime_rate(place):
         data = resp.json()
         print("Crime API response:", data)
         return data.get("crime_level", "N/A")
-    except Exception as e:
-        print(f"Error in crime_rate: {e}")
-        return "N/A"
+    try:
+    resp = requests.get(url, headers=headers, params=params, timeout=10)
+    data = resp.json()
+    print("API Response:", data)  # Add this line
+    # ...rest of code
+except Exception as e:
+    print("Error:", e)
+    return 'N/A'
 
 def commute_score(lat, lon):
     # Count public transit stops nearby as a proxy for score
@@ -138,9 +148,14 @@ def get_school_data(lat, lon, radius=2, state="MA"):
             rating = school.get("schoolRating", "N/A")
             schools.append(f"{name} (Rating: {rating}/10)")
         return schools
-    except Exception as e:
-        print(f"Error in get_school_data: {e}")
-        return ["N/A"]
+    try:
+    resp = requests.get(url, headers=headers, params=params, timeout=10)
+    data = resp.json()
+    print("API Response:", data)  # Add this line
+    # ...rest of code
+except Exception as e:
+    print("Error:", e)
+    return 'N/A'
 
 def get_all_metrics(place, lat, lon):
     housing = avg_housing_cost(place)
