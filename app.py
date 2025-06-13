@@ -83,7 +83,8 @@ def walkability_score(lat, lon):
     return score
 
 def get_school_rating(school_name, lat, lon):
-    url = "https://api.schooldigger.com/v1.2/schools"
+    # 1. Get the school info to retrieve the state and school ID
+    school_url = "https://api.schooldigger.com/v1.2/schools"
     api_key = os.environ.get("SCHOOLDIGGER_API_KEY")
     params = {
         "q": school_name,
@@ -93,17 +94,31 @@ def get_school_rating(school_name, lat, lon):
         "lon": lon,
         "distance": 1
     }
-    try:
-        response = requests.get(url, params=params, timeout=10)
-        data = response.json()
-        print("DEBUG SCHOOL API RESPONSE:", data)  # For debugging, remove or comment out in production
-        if "schoolList" in data and data["schoolList"]:
-            rating = data["schoolList"][0].get("gsRating")
-            return rating if rating is not None else "N/A"
+    response = requests.get(school_url, params=params, timeout=10)
+    data = response.json()
+    print("DEBUG SCHOOL API RESPONSE:", data)
+    if "schoolList" not in data or not data["schoolList"]:
         return "N/A"
-    except Exception as e:
-        print(f"Error fetching rating for {school_name}: {e}")
+    school = data["schoolList"][0]
+    school_id = school["schoolid"]
+    state = school["address"]["state"]
+
+    # 2. Get the rankings for the state
+    rankings_url = f"https://api.schooldigger.com/v1.2/rankings/schools/{state}"
+    rankings_params = {
+        "appID": api_key,
+        "appKey": api_key
+    }
+    rankings_response = requests.get(rankings_url, params=rankings_params, timeout=10)
+    rankings_data = rankings_response.json()
+    print("DEBUG SCHOOL RANKINGS API RESPONSE:", rankings_data)
+    if "schoolRankings" not in rankings_data:
         return "N/A"
+    for ranking in rankings_data["schoolRankings"]:
+        if ranking["schoolid"] == school_id:
+            # You may want to extract 'rank' or 'gsRating' or another field
+            return ranking.get("rank", "N/A")
+    return "N/A"
     
 def pet_score(green_count, walk_score):
     return round((green_count * 10 + walk_score) / 2)
