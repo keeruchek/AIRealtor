@@ -82,43 +82,33 @@ def walkability_score(lat, lon):
     score = min(100, (len(parks) + len(shops) + len(schools)) * 5)
     return score
 
-def get_school_rating(school_name, lat, lon):
-    # 1. Get the school info to retrieve the state and school ID
-    school_url = "https://api.schooldigger.com/v1.2/schools"
+def get_school_rating(school_name, state):
+    import os
+    import requests
     api_key = os.environ.get("SCHOOLDIGGER_API_KEY")
-    params = {
-        "q": school_name,
-        "appID": api_key,
-        "appKey": api_key,
-        "lat": lat,
-        "lon": lon,
-        "distance": 1
-    }
-    response = requests.get(school_url, params=params, timeout=10)
-    data = response.json()
-    print("DEBUG SCHOOL API RESPONSE:", data)
-    if "schoolList" not in data or not data["schoolList"]:
-        return "N/A"
-    school = data["schoolList"][0]
-    school_id = school["schoolid"]
-    state = school["address"]["state"]
-
-    # 2. Get the rankings for the state
     rankings_url = f"https://api.schooldigger.com/v1.2/rankings/schools/{state}"
-    rankings_params = {
+    params = {
         "appID": api_key,
         "appKey": api_key
     }
-    rankings_response = requests.get(rankings_url, params=rankings_params, timeout=10)
-    rankings_data = rankings_response.json()
-    print("DEBUG SCHOOL RANKINGS API RESPONSE:", rankings_data)
-    if "schoolRankings" not in rankings_data:
+    try:
+        response = requests.get(rankings_url, params=params, timeout=10)
+        data = response.json()
+        print("DEBUG SCHOOL RANKINGS API RESPONSE:", data)
+        if "schoolRankings" not in data:
+            return "N/A"
+        for school in data["schoolRankings"]:
+            # Try to match by school name (case-insensitive, best effort)
+            if school_name.lower() in school.get("schoolName", "").lower():
+                rating = school.get("gsRating")
+                if rating is not None:
+                    return f"{rating}/10"
+                # Or use rank, or other fields if you prefer
+                return str(school.get("rank", "N/A"))
         return "N/A"
-    for ranking in rankings_data["schoolRankings"]:
-        if ranking["schoolid"] == school_id:
-            # You may want to extract 'rank' or 'gsRating' or another field
-            return ranking.get("rank", "N/A")
-    return "N/A"
+    except Exception as e:
+        print("Error fetching rankings:", e)
+        return "N/A"
     
 def pet_score(green_count, walk_score):
     return round((green_count * 10 + walk_score) / 2)
@@ -132,7 +122,7 @@ def get_all_metrics(place, lat, lon):
     crime = crime_rate(place)
     schools = get_nearby_places(lat, lon, 'amenity=school', 'schools') + get_nearby_places(lat, lon, 'amenity=college', 'colleges')
     schools_with_ratings = [
-        f"{school} (Rating: {get_school_rating(school, lat, lon)}/10)" for school in schools
+    f"{school} (Rating: {get_school_rating(school, state)})" for school in schools
     ]
     # Choose your destination for commute scoring (example: Downtown Boston)
     destination = "Downtown Boston, MA"
